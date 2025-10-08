@@ -1390,7 +1390,7 @@ WeaponDef *__cdecl BG_LoadWeaponDef_LoadObj(const char *name)
 #endif
     if (weapDef)
         return weapDef;
-    weapDefa = BG_LoadWeaponDefInternal("mp", "defaultweapon_mp");
+    WeaponDef* weapDefa = BG_LoadWeaponDefInternal("mp", "defaultweapon_mp");
     if (!weapDefa)
         Com_Error(ERR_DROP, "BG_LoadWeaponDef: Could not find default weapon");
 
