@@ -9450,16 +9450,14 @@ void __cdecl GScr_SetFlaggedAnimInternal(scr_entref_t entref, unsigned int flags
     double v5; // fp31
     double v6; // fp29
     XAnimTree_s *EntAnimTree; // r27
-    XAnimTree_s *v8; // r5
     unsigned int v9; // r29
     const XAnim_s *Anims; // r3
     const char *v11; // r3
     DObj_s *ServerDObj; // r31
-    int v13; // r7
-    unsigned int v14; // r6
-    unsigned int v15; // r5
+    int v13{}; // r7
+    unsigned int v14{}; // r6
+    unsigned int v15{}; // r5
     int v16; // r3
-    int v17; // r11
 
     Entity = GetEntity(entref);
     Float = 1.0;
@@ -9512,8 +9510,7 @@ void __cdecl GScr_SetFlaggedAnimInternal(scr_entref_t entref, unsigned int flags
                 v11 = "SetFlaggedAnimRestart";
                 break;
             default:
-                if (flags)
-                    MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\game\\g_scr_main.cpp", 11306, 0, "%s", "flags == 0");
+                iassert(flags == 0);
                 v11 = "SetFlaggedAnimLimited";
                 break;
             }

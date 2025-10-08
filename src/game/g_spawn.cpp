@@ -1094,8 +1094,8 @@ void __cdecl Scr_SetGenericField(unsigned __int8 *b, fieldtype_t type, int ofs)
     gentity_s *v11; // r3
     gentity_s *v12; // r3
     float v13; // [sp+50h] [-30h] BYREF
-    float v14; // [sp+54h] [-2Ch]
-    float v15; // [sp+58h] [-28h]
+    float v14 = 0.0f; // [sp+54h] [-2Ch]
+    float v15 = 0.0f; // [sp+58h] [-28h]
 
     EntHandle *enthand;
     SentientHandle *senthand;
