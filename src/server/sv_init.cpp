@@ -389,15 +389,19 @@ void __cdecl SV_SpawnServer(const char *mapname, int savegame)
     // MP ADD
     if (IsFastFileLoad())
     {
+#ifdef KISAK_MP
         char zoneName[64];
         XZoneInfo zoneInfo;
+#endif
 
         DB_ResetZoneSize(0);
+#ifdef KISAK_MP
         Com_sprintf(zoneName, 0x40u, "%s_load", mapname);
         zoneInfo.name = zoneName;
         zoneInfo.allocFlags = 32;
         zoneInfo.freeFlags = 96;
         DB_LoadXAssets(&zoneInfo, 1, 0);
+#endif
     }
     // MP END
 
@@ -407,7 +411,9 @@ void __cdecl SV_SpawnServer(const char *mapname, int savegame)
     if (IsFastFileLoad())
     {
         DB_SyncXAssets();
+#ifdef KISAK_MP
         DB_UpdateDebugZone();
+#endif
     }
     // MP END
 
