@@ -1476,6 +1476,9 @@ void CL_CubemapShotUsage();
 #endif
 
 
+
+#define FloatAsInt(f) (*(int*)&(f))
+
 /**
  * stristr - Case insensitive strstr()
  * @haystack: Where we will search for our @needle
@@ -1535,23 +1538,6 @@ inline char * stristr(const char *haystack, const char *needle)
     return NULL;
 }
 
-inline void __cdecl strrchr(unsigned __int8 *string, unsigned __int8 chr)
-{
-    size_t v2; // ecx
-    unsigned __int8 *v3; // edi
-    bool v4; // zf
-
-    v2 = strlen((const char *)string) + 1;
-    v3 = &string[v2 - 1];
-    do
-    {
-        if (!v2)
-            break;
-        v4 = *v3-- == chr;
-        --v2;
-    } while (!v4);
-}
-
 // LWSS: Random return 0 Stub function that IDA thinks is jpeg-related.
 inline int __cdecl RETURN_ZERO32()
 {
@@ -1567,4 +1553,56 @@ inline void __cdecl KISAK_NULLSUB()
 inline bool IsPowerOf2(int num)
 {
     return (num & (num - 1)) == 0;
+}
+
+template <typename T>
+inline T Buf_Read(unsigned char **pos)
+{
+    T value = *(reinterpret_cast<const T *>(*pos));
+    *pos += sizeof(T);
+    return value;
+}
+
+#include <xmmintrin.h>  // SSE
+
+// (https://github.com/SwagSoftware/KisakCOD/issues/52)
+// The default x87 rounding mode for floating point to integer is Round to nearest Even (Banker's rounding)
+// However if you use a modern compiler and regular casts, it will round down.
+// This is because it seems to use the `cvttss2si` instruction (SSE) which is always truncated
+// This probably was not the case back then, but should be emulated because the float rounding *highly* effects the movement amongst other code
+// Anywhere you see "(float)(int)" should be investigated for this
+// You are basically looking for `fistp`, which unloads the FPU into an integer (and does rounding in the process)
+// Also any call to "ftol" or "ftol_sse" will be doing this ^^ and returning the result in eax
+inline float SnapFloat(float x)
+{
+#if defined(KISAK_PURE) && defined(_WIN32)
+    int i;
+    __asm fld x;
+    __asm fistp i;
+
+    return static_cast<float>(i);
+#endif
+
+    // We can use `cvtss2si` instead (1 t). By default this is set to Nearest even and matches the other methods in my testbed
+    // This is a bit more portable since other platforms dont have __asm or even 32bit support anymore
+    int i;
+    i = _mm_cvtss_si32(_mm_set_ss(x));
+    return  static_cast<float>(i);
+}
+
+// A simpler version of the above that can be used to save a cast afterwards
+// (basically ftol())
+inline int SnapFloatToInt(float x)
+{
+    #if defined(KISAK_PURE) && defined(_WIN32)
+    int i;
+    __asm fld x;
+    __asm fistp i;
+
+    return i;
+    #endif
+
+    int i;
+    i = _mm_cvtss_si32(_mm_set_ss(x));
+    return i;
 }

@@ -1872,9 +1872,8 @@ mnode_t *__cdecl R_SortNodes_r(mnode_load_t *node, mnode_t *out)
 
         out->rightChildOffset = ((char*)outb - (char*)out) / 2;
 
-        // lwss: this can't be hit
-//        if (out->rightChildOffset != (outb - out) >> 1)
-//            Com_Error(ERR_DROP, "Max cells exceeded");
+        if (out->rightChildOffset != (outb - out) >> 1)
+            Com_Error(ERR_DROP, "Max cells exceeded");
 
         return R_SortNodes_r(&rgl.nodes[node->children[1]], outb);
     }
@@ -1978,9 +1977,6 @@ BOOL __cdecl R_CompareSurfaces(const GfxSurface &surf0, const GfxSurface &surf1)
     int lightmapIndex_4; // [esp+7Ch] [ebp-10h]
     MaterialTechniqueSet *techSet[2]; // [esp+80h] [ebp-Ch]
     int comparison; // [esp+88h] [ebp-4h]
-    int comparisona; // [esp+88h] [ebp-4h]
-    int comparisonb; // [esp+88h] [ebp-4h]
-    int comparisonc; // [esp+88h] [ebp-4h]
 
     material[0] = surf0.material;
     material[1] = surf1.material;
@@ -1999,19 +1995,19 @@ BOOL __cdecl R_CompareSurfaces(const GfxSurface &surf0, const GfxSurface &surf1)
         if (comparison)
             return comparison < 0;
     }
-    comparisona = (material[0]->info.drawSurf.fields.primarySortKey - material[1]->info.drawSurf.fields.primarySortKey);
-    if (comparisona)
-        return comparisona < 0;
+    comparison = (material[0]->info.drawSurf.fields.primarySortKey - material[1]->info.drawSurf.fields.primarySortKey);
+    if (comparison)
+        return comparison < 0;
     Com_GetPrimaryLight(surf0.primaryLightIndex);
     Com_GetPrimaryLight(surf1.primaryLightIndex);
-    comparisonb = surf0.primaryLightIndex - surf1.primaryLightIndex;
-    if (comparisonb)
-        return comparisonb < 0;
-    comparisonc = (material[0]->info.drawSurf.fields.materialSortedIndex - material[1]->info.drawSurf.fields.materialSortedIndex);
-    if (comparisonc)
+    comparison = surf0.primaryLightIndex - surf1.primaryLightIndex;
+    if (comparison)
+        return comparison < 0;
+    comparison = (material[0]->info.drawSurf.fields.materialSortedIndex - material[1]->info.drawSurf.fields.materialSortedIndex);
+    if (comparison)
     {
         iassert( surf0.tris.firstVertex != surf1.tris.firstVertex );
-        return comparisonc < 0;
+        return comparison < 0;
     }
     else
     {
@@ -2030,7 +2026,7 @@ BOOL __cdecl R_CompareSurfaces(const GfxSurface &surf0, const GfxSurface &surf1)
                 {
                     surfIndex = surf0.tris.vertexCount;
                     surfIndex_4 = surf1.tris.vertexCount;
-                    iassert( comparison );
+                    //iassert( comparison ); // var optimized out (surfIndex == surfIndex_4)
                     return surfIndex - surfIndex_4 < 0;
                 }
                 else
@@ -2806,9 +2802,7 @@ void __cdecl R_LoadEntities(unsigned int bspVersion)
 void R_AddAllProbesToAllCells()
 {
     GfxCell *cell; // [esp+0h] [ebp-Ch]
-    GfxCell *cella; // [esp+0h] [ebp-Ch]
     int cellIndex; // [esp+4h] [ebp-8h]
-    int cellIndexa; // [esp+4h] [ebp-8h]
     unsigned __int8 reflectionProbeIndex; // [esp+Bh] [ebp-1h]
 
     iassert( s_world.reflectionProbeCount > 0 );
@@ -2826,22 +2820,16 @@ void R_AddAllProbesToAllCells()
     }
     else
     {
-        for (cellIndexa = 0; cellIndexa < s_world.dpvsPlanes.cellCount; ++cellIndexa)
+        for (cellIndex = 0; cellIndex < s_world.dpvsPlanes.cellCount; ++cellIndex)
         {
-            cella = &s_world.cells[cellIndexa];
+            cell = &s_world.cells[cellIndex];
             iassert( cell->reflectionProbeCount == 0 );
             iassert( cell->reflectionProbes == NULL );
-            cella->reflectionProbeCount = LOBYTE(s_world.reflectionProbeCount) - 1;
-            if (cella->reflectionProbeCount != s_world.reflectionProbeCount - 1)
-                MyAssertHandler(
-                    ".\\r_bsp_load_obj.cpp",
-                    4377,
-                    0,
-                    "%s",
-                    "cell->reflectionProbeCount == s_world.reflectionProbeCount - 1");
-            cella->reflectionProbes = Hunk_Alloc(cella->reflectionProbeCount, "R_AddAllProbesToAllCells", 22);
+            cell->reflectionProbeCount = LOBYTE(s_world.reflectionProbeCount) - 1;
+            iassert(cell->reflectionProbeCount == s_world.reflectionProbeCount - 1);
+            cell->reflectionProbes = Hunk_Alloc(cell->reflectionProbeCount, "R_AddAllProbesToAllCells", 22);
             for (reflectionProbeIndex = 0; reflectionProbeIndex < s_world.reflectionProbeCount - 1; ++reflectionProbeIndex)
-                cella->reflectionProbes[reflectionProbeIndex] = reflectionProbeIndex + 1;
+                cell->reflectionProbes[reflectionProbeIndex] = reflectionProbeIndex + 1;
         }
     }
 }
@@ -3572,10 +3560,9 @@ unsigned __int8 *R_LoadWorldRuntime()
                 20);
     }
     if (s_world.dpvs.smodelCount)
-        v5 = Hunk_Alloc(8 * s_world.dpvs.smodelVisDataCount, "R_InitDynamicData", 21);
+        s_world.dpvs.lodData = (unsigned int*)Hunk_Alloc(8 * s_world.dpvs.smodelVisDataCount, "R_InitDynamicData", 21);
     else
-        v5 = 0;
-    s_world.dpvs.lodData = (unsigned int*)v5;
+        s_world.dpvs.lodData = 0;
     s_world.dpvs.staticSurfaceCount = s_world.models->surfaceCount;
     s_world.dpvs.staticSurfaceCountNoDecal = s_world.models->surfaceCountNoDecal;
     if (s_world.dpvs.staticSurfaceCount)

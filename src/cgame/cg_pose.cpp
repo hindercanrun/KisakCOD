@@ -9,43 +9,26 @@
 #include <client/cl_pose.h>
 #include "cg_main.h"
 #include <gfx_d3d/r_scene.h>
+#include <universal/profile.h>
 
-// local variable allocation has failed, the output may be wrong!
-void __cdecl PitchToQuat(double pitch, float *quat, float *a3)
+void __cdecl PitchToQuat(float pitch, float *quat)
 {
-    double v4; // fp31
-    long double v5; // fp2
-    long double v6; // fp2
-    long double v7; // fp2
+    pitch = DEG2RAD(pitch);
 
-    v4 = (float)((float)pitch * (float)0.0087266462);
-    *a3 = 0.0;
-    a3[2] = 0.0;
-    *(double *)&v5 = v4;
-    v6 = sin(v5);
-    a3[1] = *(double *)&v6;
-    *(double *)&v6 = v4;
-    v7 = cos(v6);
-    a3[3] = *(double *)&v7;
+    quat[0] = 0.0;
+    quat[1] = sin(pitch);
+    quat[2] = 0.0;
+    quat[3] = cos(pitch);
 }
 
-// local variable allocation has failed, the output may be wrong!
-void __cdecl RollToQuat(double roll, float *quat, float *a3)
+void __cdecl RollToQuat(float  roll, float *quat)
 {
-    double v4; // fp31
-    long double v5; // fp2
-    long double v6; // fp2
-    long double v7; // fp2
+    roll = DEG2RAD(roll);
 
-    v4 = (float)((float)roll * (float)0.0087266462);
-    a3[1] = 0.0;
-    a3[2] = 0.0;
-    *(double *)&v5 = v4;
-    v6 = sin(v5);
-    *a3 = *(double *)&v6;
-    *(double *)&v6 = v4;
-    v7 = cos(v6);
-    a3[3] = *(double *)&v7;
+    quat[0] = sin(roll);
+    quat[1] = 0.0;
+    quat[2] = 0.0;
+    quat[3] = cos(roll);
 }
 
 void __cdecl LocalMatrixTransformVectorQuatTrans(const float *in, const DObjAnimMat *mat, float *out)
@@ -93,69 +76,61 @@ void __cdecl NormalizeQuatTrans(DObjAnimMat *mat)
     }
 }
 
-void __cdecl CG_mg42_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partBits, long double a4)
+void __cdecl CG_mg42_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partBits)
 {
     bool playerUsing; // r10
-    float *proneType; // r30
+    float *turretViewAngles; // r30
     double v9; // fp30
-    long double v10; // fp2
     double v11; // fp0
     double v12; // fp31
     long double v13; // fp2
     double roll; // fp0
     double v15; // fp13
-    float v16; // [sp+50h] [-70h] BYREF
-    float pitch; // [sp+54h] [-6Ch]
-    float v18; // [sp+58h] [-68h]
-    float v19[12]; // [sp+60h] [-60h] BYREF
+    float aimAngles[3]; // [sp+50h] [-70h] BYREF
+    //float pitch; // [sp+54h] [-6Ch]
+    //float v18; // [sp+58h] [-68h]
+    float flashAngles[3]; // [sp+60h] [-60h] BYREF
 
-    if (!obj)
-        MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 32, 0, "%s", "obj");
+    iassert(obj);
+
     playerUsing = pose->turret.playerUsing;
-    v16 = 0.0;
-    pitch = 0.0;
-    v18 = 0.0;
-    v19[0] = 0.0;
-    v19[1] = 0.0;
-    v19[2] = 0.0;
+    aimAngles[0] = 0.0;
+    aimAngles[1] = 0.0; 
+    aimAngles[2] = 0.0;
+    flashAngles[0] = 0.0;
+    flashAngles[1] = 0.0;
+    flashAngles[2] = 0.0;
     if (playerUsing)
     {
-        if (!pose->actor.proneType)
-            MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 39, 0, "%s", "pose->turret.viewAngles");
-        proneType = (float *)pose->actor.proneType;
-        v9 = (float)((float)(*proneType - pose->angles[0]) * (float)0.0027777778);
-        *(double *)&a4 = (float)((float)((float)(*proneType - pose->angles[0]) * (float)0.0027777778) + (float)0.5);
-        v10 = floor(a4);
+        iassert(pose->turret.viewAngles);
+        turretViewAngles = (float*)pose->turret.viewAngles;
+        v9 = ((*turretViewAngles - pose->angles[0]) * 0.0027777778);
         v11 = pose->angles[1];
-        v16 = (float)((float)v9 - (float)*(double *)&v10) * (float)360.0;
-        v12 = (float)((float)(proneType[1] - (float)v11) * (float)0.0027777778);
-        *(double *)&v10 = (float)((float)((float)(proneType[1] - (float)v11) * (float)0.0027777778) + (float)0.5);
-        v13 = floor(v10);
-        v19[0] = 0.0;
-        pitch = (float)((float)v12 - (float)*(double *)&v13) * (float)360.0;
+        aimAngles[0] = (float)((float)v9 - floor((((*turretViewAngles - pose->angles[0]) * 0.0027777778f) + 0.5f))) * (float)360.0;
+        v12 = (float)((float)(turretViewAngles[1] - (float)v11) * (float)0.0027777778);
+        v13 = floor((((turretViewAngles[1] - (float)v11) * (float)0.0027777778) + (float)0.5));
+        aimAngles[2] = (float)((float)v12 - (float)*(double *)&v13) * (float)360.0;
+        flashAngles[0] = 0.0;
     }
     else
     {
-        roll = pose->actor.roll;
-        //v15 = (float)(pose->turret.$51809EA76892896F64281DFB626CE797::angles.pitch - pose->actor.roll);
-        v15 = (float)(pose->turret.angles.pitch - pose->actor.roll);
-        pitch = pose->actor.pitch;
-        v16 = v15;
-        v19[0] = roll;
+        aimAngles[0] = (pose->turret.angles.pitch - pose->turret.barrelPitch);
+        aimAngles[1] = pose->turret.angles.yaw;
+        flashAngles[0] = pose->turret.barrelPitch;
     }
-    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_aim, &v16);
-    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_aim_animated, &v16);
-    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_flash, v19);
+    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_aim, aimAngles);
+    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_aim_animated, aimAngles);
+    DObjSetControlTagAngles((DObj_s*)obj, partBits, pose->turret.tag_flash, flashAngles);
 }
 
 #if 0
 void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partBits)
 {
     __int64 v3; // r28
-    __int128 v7; // r9 OVERLAPPED
+    __int128 boneMatrix; // r9 OVERLAPPED
     __int16 pitch; // r10
     unsigned int tag_body; // r5
-    __int64 v10; // r11
+    __int64 offset; // r11
     double height; // fp29
     const XModel *Model; // r30
     const DObjAnimMat *BasePose; // r24
@@ -184,31 +159,31 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
 
     if (!obj)
         MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 82, 0, "%s", "obj");
-    DWORD1(v7) = v44;
-    LODWORD(v7) = pose->vehicle.barrelPitch;
-    DWORD2(v7) = pose->vehicle.yaw;
+    DWORD1(boneMatrix) = v44;
+    LODWORD(boneMatrix) = pose->vehicle.barrelPitch;
+    DWORD2(boneMatrix) = pose->vehicle.yaw;
     pitch = pose->vehicle.pitch;
     LODWORD(v3) = pose->vehicle.steerYaw;
-    WORD1(v7) = pose->vehicle.roll;
+    WORD1(boneMatrix) = pose->vehicle.roll;
     tag_body = pose->vehicle.tag_body;
-    v45 = v7;
-    v46 = *(_QWORD *)((char *)&v7 + 4);
+    v45 = boneMatrix;
+    v46 = *(_QWORD *)((char *)&boneMatrix + 4);
     v38 = v3;
-    LODWORD(v10) = pitch;
-    HIDWORD(v10) = SWORD1(v7);
+    LODWORD(offset) = pitch;
+    HIDWORD(offset) = SWORD1(boneMatrix);
     v42[0] = 0.0;
     v42[2] = 0.0;
     v43[1] = 0.0;
     v43[2] = 0.0;
-    v36 = v10;
-    v37 = *(_QWORD *)((char *)&v7 - 4);
+    v36 = offset;
+    v37 = *(_QWORD *)((char *)&boneMatrix - 4);
     v44[1] = 0.0;
     v39 = 0.0;
     v41 = 0.0;
-    v44[2] = (float)*(__int64 *)((char *)&v7 - 4) * (float)0.0054931641;
-    v44[0] = (float)v10 * (float)0.0054931641;
-    v43[0] = (float)(__int64)v7 * (float)0.0054931641;
-    v42[1] = (float)*(__int64 *)((char *)&v7 + 4) * (float)0.0054931641;
+    v44[2] = (float)*(__int64 *)((char *)&boneMatrix - 4) * (float)0.0054931641;
+    v44[0] = (float)offset * (float)0.0054931641;
+    v43[0] = (float)(__int64)boneMatrix * (float)0.0054931641;
+    v42[1] = (float)*(__int64 *)((char *)&boneMatrix + 4) * (float)0.0054931641;
     v40 = (float)v3 * (float)0.0054931641;
     DObjSetLocalTag((DObj_s*)obj, partBits, tag_body, vec3_origin, v44);
     DObjSetLocalTag((DObj_s*)obj, partBits, pose->vehicle.tag_turret, vec3_origin, v42);
@@ -230,10 +205,10 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
     _R7 = v51;
     __asm
     {
-        vmr       v10, v0
+        vmr       offset, v0
         lvrx      v8, r27, r10
         vmr       v9, v0
-        lvlx      v7, r0, r9
+        lvlx      boneMatrix, r0, r9
     }
     __asm { lvrx      v6, r27, r8 }
     __asm { lvx128    v127, r0, r11 }
@@ -253,9 +228,9 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
     _R11 = &g_one;
     __asm
     {
-        vor       angles, v7, v8
+        vor       angles, boneMatrix, v8
         vor       v8, v5, v6
-        vrlimi128 v126, v10, 1, 3
+        vrlimi128 v126, offset, 1, 3
         vrlimi128 v125, v9, 1, 3
         vmr128    v123, v0
         lvx128    trans, r0, r11
@@ -264,13 +239,13 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
     _R28 = &g_keepXYZ;
     __asm
     {
-        lvx128    v12, r0, r28
-        vand128   v124, angles, v12
+        lvx128    rollQuat, r0, r28
+        vand128   v124, angles, rollQuat
         vmrglw128 angles, v127, v125
-        vand128   v122, v8, v12
-        vmrglw128 v12, v126, trans
+        vand128   v122, v8, rollQuat
+        vmrglw128 rollQuat, v126, trans
         vmrghw128 trans, v127, v125
-        vmrghw128 v119, angles, v12
+        vmrghw128 v119, angles, rollQuat
         vmrghw128 v121, trans, v0
         vmrglw128 v120, trans, v0
     }
@@ -289,28 +264,28 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
             __asm
             {
                 lvx128    v0, r0, r28
-                vmr128    v10, v123
+                vmr128    offset, v123
             }
             _R11 = (int)BasePose[v28].trans;
             HIDWORD(_R10) = &v37;
             v38 = _R10;
             __asm
             {
-                lvlx      v12, r0, r11
+                lvlx      rollQuat, r0, r11
                 lvrx      trans, r27, r11
             }
             _R11 = v52;
-            __asm { vor       trans, v12, trans }
+            __asm { vor       trans, rollQuat, trans }
             *(float *)&v37 = 40.0;
             __asm
             {
                 vand      v0, trans, v0
                 vspltw    trans, v0, 2
-                vspltw    v12, v0, 1
+                vspltw    rollQuat, v0, 1
                 vspltw    angles, v0, 0
-                vmaddfp128 v10, v125, trans, v10
-                vmaddfp128 v10, v12, v126, v10
-                vmaddfp128 v10, angles, v127, v10
+                vmaddfp128 offset, v125, trans, offset
+                vmaddfp128 offset, rollQuat, v126, offset
+                vmaddfp128 offset, angles, v127, offset
             }
             _FP12 = (float)((float)((float)((float)((float)height + (float)40.0) * (float)_R10) * (float)0.000015259022)
                 - (float)((float)40.0 - (float)height));
@@ -321,18 +296,18 @@ void __cdecl CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, in
             {
                 lvlx      trans, r0, r9
                 vspltw    trans, trans, 0
-                lvlx      v12, r0, r10
-                vspltw    v12, v12, 0
-                vmaddfp128 v10, trans, v124, v10
-                vmaddfp128 v10, v12, v124, v10
-                vsubfp128 trans, v10, v122
-                vspltw    v12, trans, 2
+                lvlx      rollQuat, r0, r10
+                vspltw    rollQuat, rollQuat, 0
+                vmaddfp128 offset, trans, v124, offset
+                vmaddfp128 offset, rollQuat, v124, offset
+                vsubfp128 trans, offset, v122
+                vspltw    rollQuat, trans, 2
                 vspltw    angles, trans, 1
                 vspltw    trans, trans, 0
-                vmulfp128 v12, v12, v119
-                vmaddfp128 v12, angles, v120, v12
-                vmaddfp128 v12, trans, v121, v12
-                vsubfp    v0, v12, v0
+                vmulfp128 rollQuat, rollQuat, v119
+                vmaddfp128 rollQuat, angles, v120, rollQuat
+                vmaddfp128 rollQuat, trans, v121, rollQuat
+                vsubfp    v0, rollQuat, v0
                 stvx128   v0, r0, r11
             }
             if (v40 == 0.0 || (unsigned int)v25 > 1)
@@ -699,47 +674,39 @@ void CG_Vehicle_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partB
 
 void __cdecl CG_Actor_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partBits)
 {
-    DObjAnimMat *RotTransArray; // r28
-    float *v7; // r3
+    DObjAnimMat *mat; // r28
     int proneType; // r8
-    float *v9; // r3
-    float v10[4]; // [sp+50h] [-60h] BYREF
-    float v11[4]; // [sp+60h] [-50h] BYREF
-    float v12[16]; // [sp+70h] [-40h] BYREF
+    float offset[4]; // [sp+50h] [-60h] BYREF
+    float pitchQuat[4]; // [sp+60h] [-50h] BYREF
+    float rollQuat[4]; // [sp+70h] [-40h] BYREF
 
-    if (!obj)
-        MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 169, 0, "%s", "obj");
+    iassert(obj);
+
     if (pose->actor.proneType)
     {
-        RotTransArray = DObjGetRotTransArray(obj);
-        if (RotTransArray)
+        mat = DObjGetRotTransArray(obj);
+        if (mat)
         {
-            v7 = (float *)DObjSetRotTransIndex((DObj_s*)obj, partBits, 0);
-            if (v7)
+            if (DObjSetRotTransIndex((DObj_s *)obj, partBits, 0))
             {
                 proneType = pose->actor.proneType;
                 if (proneType == 2)
                 {
-                    PitchToQuat(pose->actor.pitch, v7, v11);
-                    RollToQuat(pose->actor.roll, v9, v12);
-                    QuatMultiply(v12, v11, RotTransArray->quat);
+                    PitchToQuat(pose->actor.pitch, pitchQuat);
+                    RollToQuat(pose->actor.roll, rollQuat);
+                    QuatMultiply(rollQuat, pitchQuat, mat->quat);
                 }
                 else
                 {
-                    if (proneType != 1)
-                        MyAssertHandler(
-                            "c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp",
-                            194,
-                            0,
-                            "%s\n\t(pose->actor.proneType) = %i",
-                            "(pose->actor.proneType == CENT_ACTOR_PRONE_NORMAL)",
-                            proneType);
-                    PitchToQuat(pose->actor.pitch, v7, RotTransArray->quat);
+                    iassert(pose->actor.proneType == CENT_ACTOR_PRONE_NORMAL);
+                    PitchToQuat(pose->actor.pitch, mat->quat);
                 }
-                v10[2] = pose->actor.height;
-                v10[0] = 0.0;
-                v10[1] = 0.0;
-                DObjSetTrans(RotTransArray, v10);
+
+                offset[0] = 0.0;
+                offset[1] = 0.0;
+                offset[2] = pose->actor.height;
+
+                DObjSetTrans(mat, offset);
             }
         }
     }
@@ -751,11 +718,12 @@ void __cdecl CG_DoBaseOriginController(const cpose_t *pose, const DObj_s *obj, i
     DObjAnimMat *mat; // r30
     int LocalClientNum; // r8
     float baseQuat[4];
-    int partBits[9];
+    int partBits[8];
     DObjAnimMat animMat;
     unsigned int highIndex;
     int partIndex;
     float origin[3];
+    float viewOffset[3];
 
     rootBoneCount = DObjGetRootBoneCount(obj);
     iassert(rootBoneCount);
@@ -769,26 +737,31 @@ void __cdecl CG_DoBaseOriginController(const cpose_t *pose, const DObj_s *obj, i
 
     if (((0xFFFFFFFF >> ((rootBoneCount & 0x1F) + 1)) | setPartBits[maxHighIndex]) == 0xFFFFFFFF)
         return;
-notSet:
 
+notSet:
     mat = DObjGetRotTransArray(obj);
     if (mat)
     {
         AnglesToQuat(pose->angles, baseQuat);
         memset(partBits, 0, sizeof(partBits));
-        partBits[4] = 0x80000000;
+        partBits[3] = 0x80000000;
+        cg_s *cgameGlob = CG_GetLocalClientGlobals(R_GetLocalClientNum());
+        viewOffset[0] = cgameGlob->refdef.viewOffset[0];
+        viewOffset[1] = cgameGlob->refdef.viewOffset[1];
+        viewOffset[2] = cgameGlob->refdef.viewOffset[2];
         partIndex = 0;
         while (partIndex <= rootBoneCount)
         {
             highIndex = partIndex >> 5;
-            if ((setPartBits[partIndex >> 5] & partBits[4]) == 0)
+            if ((setPartBits[partIndex >> 5] & partBits[3]) == 0)
             {
-                if (DObjSetRotTransIndex((DObj_s*)obj, &partBits[4 - highIndex], partIndex))
+                if (DObjSetRotTransIndex((DObj_s*)obj, &partBits[3 - highIndex], partIndex))
                 {
                     mat->quat[0] = baseQuat[0];
                     mat->quat[1] = baseQuat[1];
                     mat->quat[2] = baseQuat[2];
                     mat->quat[3] = baseQuat[3];
+
                     origin[0] = pose->origin[0];
                     origin[1] = pose->origin[1];
                     origin[2] = pose->origin[2];
@@ -801,22 +774,23 @@ notSet:
                     animMat.quat[3] = baseQuat[3];
                     DObjSetTrans(&animMat, pose->origin);
                     float len = Vec4LengthSq(animMat.quat);
-                    if (len == 0.0)
+                    if (len == 0.0f)
                     {
                         animMat.quat[3] = 1.0f;
                         animMat.transWeight = 2.0f;
                     }
                     else
                     {
-                        animMat.transWeight = 2.0 / len;
+                        animMat.transWeight = 2.0f / len;
                     }
                     QuatMultiplyEquals(baseQuat, mat->quat);
                     MatrixTransformVectorQuatTrans(mat->trans, &animMat, origin);
                 }
+                Vec3Sub(origin, viewOffset, origin);
                 DObjSetTrans(mat, origin);
             }
             ++partIndex;
-            partBits[4] = (partBits[4] << 31) | ((unsigned int)partBits[4] >> 1);
+            partBits[3] = (partBits[3] << 31) | ((unsigned int)partBits[3] >> 1);
             ++mat;
         }
     }
@@ -824,47 +798,46 @@ notSet:
 
 void __cdecl CG_DoControllers(const cpose_t *pose, const DObj_s *obj, int *partBits)
 {
-    long double v6; // fp2
-    int v7[12]; // [sp+50h] [-30h] BYREF
+    int setPartBits[4];
 
-    //Profile_Begin(327);
-    DObjGetSetBones(obj, v7);
+    PROF_SCOPED("CG_DoControllers");
+
+    DObjGetSetBones(obj, setPartBits);
     switch (pose->eType)
     {
-    case 0xAu:
-        CG_mg42_DoControllers(pose, obj, partBits, v6);
+    case ET_MG42:
+        CG_mg42_DoControllers(pose, obj, partBits);
         break;
-    case 0xBu:
-    case 0xDu:
+    case ET_VEHICLE:
+    case ET_VEHICLE_CORPSE:
         CG_Vehicle_DoControllers(pose, obj, partBits);
         break;
-    case 0xEu:
-    case 0x10u:
+    case ET_ACTOR:
+    case ET_ACTOR_CORPSE:
         CG_Actor_DoControllers(pose, obj, partBits);
         break;
     default:
         break;
     }
-    CG_DoBaseOriginController(pose, obj, v7);
+    CG_DoBaseOriginController(pose, obj, setPartBits);
     if (pose->isRagdoll && pose->ragdollHandle)
         Ragdoll_DoControllers(pose, (DObj_s*)obj, partBits);
-    //Profile_EndInternal(0);
 }
 
 DObjAnimMat *__cdecl CG_DObjCalcPose(const cpose_t *pose, const DObj_s *obj, int *partBits)
 {
-    DObjAnimMat *v7; // [sp+50h] [-40h] BYREF
+    DObjAnimMat *boneMatrix; // [sp+50h] [-40h] BYREF
 
-    if (!obj)
-        MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 333, 0, "%s", "obj");
-    if (!pose)
-        MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\cgame\\cg_pose.cpp", 334, 0, "%s", "pose");
-    if (!CL_DObjCreateSkelForBones(obj, partBits, &v7))
+    iassert(obj);
+    iassert(pose);
+
+    if (!CL_DObjCreateSkelForBones(obj, partBits, &boneMatrix))
     {
         DObjCompleteHierarchyBits(obj, partBits);
         CG_DoControllers(pose, obj, partBits);
         DObjCalcSkel(obj, partBits);
     }
-    return v7;
+
+    return boneMatrix;
 }
 

@@ -493,10 +493,10 @@ int __cdecl G_CanRadiusDamageFromPos(
     const float *targetPos,
     gentity_s *inflictor,
     const float *centerPos,
-    double radius,
-    double coneAngleCos,
+    float radius,
+    float coneAngleCos,
     const float *coneDirection,
-    double maxHeight,
+    float maxHeight,
     bool useEyeOffset,
     int contentMask);
 float __cdecl EntDistToPoint(float *origin, gentity_s *ent);
@@ -626,8 +626,7 @@ int __cdecl G_WorldDirToScreenPos(
     const gentity_s *player,
     double fov_x,
     const float *worldDir,
-    const float *outScreenPos,
-    float *a5);
+    float *outScreenPos);
 int __cdecl ScrGetTargetScreenPos(float *screenPos);
 void __cdecl Scr_Target_IsInCircle();
 void __cdecl Scr_Target_IsInRect();

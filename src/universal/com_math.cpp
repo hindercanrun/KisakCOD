@@ -7,6 +7,7 @@
 #include <xanim/dobj.h>
 #include <stdlib.h>
 #include "q_shared.h"
+#include <qcommon/qcommon.h>
 
 //Line 51773:  0006 : 0000bc58       float (*)[3] bytedirs        827bbc58     com_math.obj
 //Line 53450 : 0006 : 0291d360       int marker_com_math      850cd360     com_math.obj
@@ -1859,10 +1860,13 @@ void __cdecl AddPointToBounds2D(const float *v, float *mins, float *maxs)
 {
     if (mins[0] > v[0])
         mins[0] = v[0];
+
     if (maxs[0] < v[0])
         maxs[0] = v[0];
+
     if (mins[1] > v[1])
         mins[1] = v[1];
+
     if (maxs[1] < v[1])
         maxs[1] = v[1];
 }
@@ -2046,7 +2050,7 @@ void __cdecl SnapPointToIntersectingPlanes(const float **planes, float *xyz, flo
     for (axis = 0; axis < 3; ++axis)
     {
         v13 = xyz[axis] / snapGrid;
-        rounded = (int)(v13) * snapGrid;
+        rounded = SnapFloat(v13) * snapGrid;
         v12 = rounded - xyz[axis];
         v9 = I_fabs(v12);
         if (snapEpsilon <= v9)
@@ -3516,7 +3520,7 @@ float Vec3DistanceSq(const float *p1, const float *p2)
          + (p2[0] - p1[0]) * (p2[0] - p1[0]);
 }
 
-static float  __cdecl Abs(const float *v)
+float  __cdecl Abs(const float *v)
 {
     return (float)sqrt((float)((float)((float)(*v * *v) + (float)(v[1] * v[1])) + (float)(v[2] * v[2])));
 }
