@@ -991,39 +991,39 @@ bool __cdecl Actor_AtDifferentElevation(float *vOrgSelf, float *vOrgOther)
 
 float __cdecl Actor_CalcultatePlayerPushDelta(const actor_s* self, const gentity_s* pusher, float* pushDir)
 {
+    static const float ACTOR_PLAYER_PUSH_MIN_SPEED = 60.0f;
+
     iassert(self);
     iassert(self->ent);
     iassert(pusher);
     iassert(pusher->client);
 
-    const float dx = self->ent->r.currentOrigin[0] - pusher->r.currentOrigin[0];
-    const float dy = self->ent->r.currentOrigin[1] - pusher->r.currentOrigin[1];
+    float viewDir[3];
+    float moveDir[3];
+    float delta = self->ent->r.currentOrigin[0] - pusher->r.currentOrigin[0];
+    float delta_4 = self->ent->r.currentOrigin[1] - pusher->r.currentOrigin[1];
+    float speed = Vec2NormalizeTo(pusher->client->ps.velocity, moveDir);
 
-    float dir[2];
-    float speed = Vec2NormalizeTo(pusher->client->ps.velocity, dir);
-
-    if (speed == 0.0f)
+    if (speed == 0.0)
     {
-        float viewDir[3];
         G_GetPlayerViewDirection(pusher, viewDir, 0, 0);
-        Vec2NormalizeTo(viewDir, dir);
+        Vec2NormalizeTo(viewDir, moveDir);
     }
+    pushDir[0] = moveDir[1];
+    pushDir[1] = -moveDir[0];
 
-    float perpX = dir[1];
-    float perpY = -dir[0];
-
-    const float dot = perpX * dx + perpY * dy;
-    if (dot < 0.0f)
+    if ((pushDir[0] * delta) + (pushDir[1] * delta_4) < 0.0f)
     {
-        perpX = -perpX;
-        perpY = -perpY;
+        pushDir[0] = -moveDir[1];
+        pushDir[1] = moveDir[0];
     }
 
-    pushDir[0] = perpX;
-    pushDir[1] = perpY;
+    if (speed < ACTOR_PLAYER_PUSH_MIN_SPEED)
+    {
+        speed = ACTOR_PLAYER_PUSH_MIN_SPEED;
+    }
 
-    const float magnitude = (speed >= 60.0f ? speed : 60.0f) * 0.05f;
-    return magnitude;
+    return (speed / 20.0f); // KISAKHERTZ
 }
 
 bool __cdecl Actor_ShouldMoveAwayFromCloseEnt(actor_s *self)
